@@ -17,7 +17,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Log Node.js version
+    - name: Log Node.js versio
       run: node --version
 
     - name: Log available disk space
@@ -31,4 +31,4 @@ jobs:
     - name: Run tests
       env:
     CHROME_BIN: /usr/bin/chromium
-      run: npm test -- --watch=false --browsers=ChromeHeadless --no-progress
+    run: npm test -- --watch=false --browsers=ChromeHeadless --no-progress
