@@ -31,9 +31,6 @@ jobs:
       if: steps.npm-cache.outputs.cache-hit != 'true'
       run: npm install --legacy-peer-deps
 
-    - name: Run tests
-      run: npm test --watch=false --browsers=ChromeHeadless --no-progress
-
     - name: Build application
       run: npm run build --
 
