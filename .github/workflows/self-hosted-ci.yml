@@ -29,4 +29,4 @@ jobs:
       run: npm install --legacy-peer-deps
 
     - name: Run tests
-      run: npm test -- --watch=false --browsers=ChromeHeadless --no-progress
+      run: npm test -- --watch=false --browsers=Chrome --no-progress
