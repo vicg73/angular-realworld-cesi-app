@@ -1,76 +1,69 @@
-name: Self-Hosted CI
+name: Continuous Deployment
 
 on:
+  # Déclenché manuellement ou après un merge sur main
+  workflow_dispatch:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
-  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  # Job de construction de l'image
+  build:
     runs-on: self-hosted
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Log Node.js version
-      run: node --version
-
-    - name: Cache node modules
-      uses: actions/cache@v3
-      id: npm-cache
-      with:
-        path: node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
-
-    - name: Install dependencies
-      if: steps.npm-cache.outputs.cache-hit != 'true'
-      run: npm install --legacy-peer-deps
-
-    - name: Build application
-      run: npm run build --
-
-  docker-build:
-    runs-on: self-hosted
-    needs: build-and-test
-
-    steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v3
 
     - name: Build Docker image
-      run: docker build -t angular-app:${{ github.sha }} .
-
-    - name: Test Docker image
+      working-directory: ${{ github.workspace }}
       run: |
-        echo "Testing Docker image..."
-        docker run -d --name test-container -p 8080:80 angular-app:${{ github.sha }}
-        echo "Container started, waiting for it to initialize..."
-        sleep 10
-        curl -s http://localhost:8080 | grep -q "conduit" && echo "Application is running correctly" || echo "Failed to verify application"
-        docker stop test-container
-        docker rm test-container
+        echo "Building Docker image..."
+        docker build -t angular-app:${{ github.sha }} .
 
-  cleanup:
+    - name: Tag images for environments
+      run: |
+        docker tag angular-app:${{ github.sha }} angular-app:staging
+        docker tag angular-app:${{ github.sha }} angular-app:production
+
+  # Déploiement en staging
+  deploy-staging:
+    needs: build
     runs-on: self-hosted
-    needs: [build-and-test, docker-build]
-    if: always()
+    environment: staging
 
     steps:
-    - name: Clean workspace
+    - name: Deploy to staging
       run: |
-        echo "Cleaning workspace to free up disk space"
-        rm -rf node_modules || true
-        rm -rf dist || true
-        npm cache clean --force || true
+        echo "Deploying to staging environment..."
+        docker-compose up -d app-staging
+        echo "Deployment to staging completed."
 
-    - name: Prune Docker images
+    - name: Verify staging deployment
       run: |
-        echo "Keeping only recent Docker images"
-        docker image ls
-        # Conserver seulement les 3 images les plus récentes
-        docker image prune -a -f --filter "until=24h"
+        echo "Verifying staging deployment..."
+        # Attendre que l'application soit prête
+        sleep 5
+        # Vérifier que l'application répond
+        curl -s http://localhost:8080 | grep -q "conduit" && echo "✅ Application is running correctly in staging" || (echo "❌ Staging verification failed" && exit 1)
+
+  # Déploiement en production
+  deploy-production:
+    needs: deploy-staging
+    runs-on: self-hosted
+    environment: production
+
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        docker-compose up -d app-production
+        echo "Deployment to production completed."
+
+    - name: Verify production deployment
+      run: |
+        echo "Verifying production deployment..."
+        # Attendre que l'application soit prête
+        sleep 5
+        # Vérifier que l'application répond
+        curl -s http://localhost:80 | grep -q "conduit" && echo "✅ Application is running correctly in production" || (echo "❌ Production verification failed" && exit 1)
