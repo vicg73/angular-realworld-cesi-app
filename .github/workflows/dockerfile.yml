@@ -43,7 +43,7 @@ jobs:
       run: |
         echo "Verifying staging deployment..."
         # Attendre que l'application soit prête
-        sleep 5
+        sleep 30
         # Vérifier que l'application répond
         curl -s http://localhost:8080 | grep -q "conduit" && echo "✅ Application is running correctly in staging" || (echo "❌ Staging verification failed" && exit 1)
 
