@@ -36,7 +36,7 @@ jobs:
     - name: Deploy to staging
       run: |
         echo "Deploying to staging environment..."
-        docker-compose up -d app-staging
+        docker compose up -d app-staging
         echo "Deployment to staging completed."
 
     - name: Verify staging deployment
